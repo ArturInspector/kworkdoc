@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Панель управления{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-dark-card border border-dark-border rounded-lg shadow-xl p-8">
+        <h2 class="text-xl font-medium mb-6 text-white">генерация договора</h2>
+        
+        <form id="generateForm" class="space-y-6">
+            <div>
+                <label for="inn" class="block text-sm font-normal mb-2 text-dark-text">ИНН компании</label>
+                <input 
+                    type="text" 
+                    name="inn" 
+                    id="inn" 
+                    required
+                    maxlength="12"
+                    pattern="[0-9]{10,12}"
+                    class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-dark-muted transition"
+                    placeholder="10 или 12 цифр"
+                >
+                <p class="mt-2 text-xs text-dark-muted">укажите ИНН компании (10 цифр — юрлицо, 12 — ИП)</p>
+            </div>
+            
+            <button 
+                type="submit"
+                id="submitBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <span id="btnText">сгенерировать</span>
+                <span id="btnLoader" class="hidden">
+                    <svg class="animate-spin h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    генерация...
+                </span>
+            </button>
+        </form>
+        
+        <div id="errorMessage" class="hidden mt-4 p-4 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm"></div>
+        <div id="successMessage" class="hidden mt-4 p-4 bg-green-900/50 border border-green-700 rounded-lg text-green-200 text-sm"></div>
+    </div>
+    
+    <div class="mt-8 bg-dark-card border border-dark-border rounded-lg p-6">
+        <h3 class="text-base font-medium mb-3 text-white">тестовые ИНН для проверки</h3>
+        <p class="text-dark-muted text-xs mb-4">DataNewton API (работают с реальным API):</p>
+        <div class="space-y-2 mb-4">
+            <div class="bg-dark-bg border border-dark-border rounded p-3">
+                <code class="text-green-400 text-sm">7707083893</code>
+                <span class="text-dark-muted text-sm ml-3"> тест</span>
+            </div>
+        </div>
+        <p class="text-dark-muted text-xs mb-2">Mock данные:</p>
+        <div class="space-y-2">
+            <div class="bg-dark-bg border border-dark-border rounded p-3">
+                <code class="text-blue-400 text-sm">1234567890</code>
+                <span class="text-dark-muted text-sm ml-3">— ИП Петров П.П.</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('generateForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const inn = document.getElementById('inn').value.trim();
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    
+    // Скрыть предыдущие сообщения
+    errorMessage.classList.add('hidden');
+    successMessage.classList.add('hidden');
+    
+    // Показать загрузку
+    submitBtn.disabled = true;
+    btnText.classList.add('hidden');
+    btnLoader.classList.remove('hidden');
+    
+    try {
+        const formData = new FormData();
+        formData.append('inn', inn);
+        
+        const response = await fetch('{{ url_for("main.generate") }}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            // await скачать файл
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Получить имя файла из заголовка
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'contract.docx';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+            
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            // Показать успех
+            successMessage.textContent = '✓ договор готов, файл загружен';
+            successMessage.classList.remove('hidden');
+            
+            // Очистить форму
+            document.getElementById('inn').value = '';
+            
+        } else {
+            // Ошибка
+            const error = await response.json();
+            errorMessage.textContent = '✕ ' + (error.error || 'ошибка при генерации');
+            errorMessage.classList.remove('hidden');
+        }
+        
+    } catch (error) {
+        errorMessage.textContent = '✕ не удалось подключиться к серверу';
+        errorMessage.classList.remove('hidden');
+        console.error('Error:', error);
+    } finally {
+        // Вернуть кнопку в исходное состояние
+        submitBtn.disabled = false;
+        btnText.classList.remove('hidden');
+        btnLoader.classList.add('hidden');
+    }
+});
+document.getElementById('inn').addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '');
+});
+</script>
+{% endblock %}
+
