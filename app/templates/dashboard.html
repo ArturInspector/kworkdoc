@@ -20,7 +20,7 @@
                         Основная информация
                     </h3>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="group">
                             <label for="contract_number" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
                                 Номер договора *
@@ -47,11 +47,29 @@
                                 class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
                             >
                         </div>
+                        
+                        <div class="group">
+                            <label for="executor_profile_id" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
+                                Исполнитель *
+                            </label>
+                            <select 
+                                name="executor_profile_id" 
+                                id="executor_profile_id" 
+                                required
+                                class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white transition-all hover:border-dark-muted"
+                            >
+                                {% for profile in executor_profiles %}
+                                <option value="{{ profile.id }}" {% if profile.is_default %}selected{% endif %}>
+                                    {{ profile.profile_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
                     </div>
                     
                     <div class="mt-6 group">
                         <label for="inn" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
-                            ИНН компании *
+                            ИНН компании заказчика*
                         </label>
                         <div class="flex flex-col sm:flex-row gap-3">
                             <input 
@@ -219,7 +237,7 @@
         <p class="text-dark-muted text-xs mb-4">DataNewton API (работают с реальным API):</p>
         <div class="space-y-2 mb-4">
             <div class="bg-dark-bg border border-dark-border rounded p-3">
-                <code class="text-green-400 text-sm">772801001</code>
+                <code class="text-green-400 text-sm">9728006808</code>
                 <span class="text-dark-muted text-sm ml-3"> тест</span>
             </div>
         </div>

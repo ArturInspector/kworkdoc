@@ -2,7 +2,9 @@ from flask import Blueprint, render_template, request, send_file, flash, redirec
 from flask_login import login_required, current_user
 from app.inn_service import fetch_company_data, validate_inn
 from app.document_generator import generate_contract, get_filename
-from app.models import get_db_connection
+from app.models import (get_db_connection, get_executor_profile, 
+                        get_all_executor_profiles, save_executor_profile, 
+                        set_default_profile)
 import traceback
 from datetime import datetime
 from app.document_generator import format_date_russian
@@ -21,7 +23,10 @@ def index():
 @login_required
 def dashboard():
     """панель управления с формой для генерации договора"""
-    return render_template('dashboard.html', user=current_user)
+    profiles = get_all_executor_profiles()
+    return render_template('dashboard.html', 
+                         user=current_user, 
+                         executor_profiles=profiles)
 
 
 @main_bp.route('/api/check-inn', methods=['POST'])
@@ -73,6 +78,7 @@ def generate():
     city = request.form.get('city', '').strip()
     hourly_rate = request.form.get('hourly_rate', '').strip()
     min_hours = request.form.get('min_hours', '').strip()
+    executor_profile_id = request.form.get('executor_profile_id', '').strip()
     
     # валидация
     if not inn:
@@ -93,6 +99,9 @@ def generate():
     if not city or not hourly_rate or not min_hours:
         return jsonify({'success': False, 'error': 'Заполните все поля почасовой оплаты'}), 400
     
+    if not executor_profile_id:
+        return jsonify({'success': False, 'error': 'Выберите профиль исполнителя'}), 400
+    
     try:
         company_data = fetch_company_data(inn)
         
@@ -108,17 +117,22 @@ def generate():
             'min_hours': min_hours
         }
         
-        doc_stream = generate_contract(company_data, contract_data)
+        doc_stream = generate_contract(company_data, contract_data, int(executor_profile_id))
         
+        # Для имени файла используем простой формат даты (без кириллицы)
         try:
             date_obj = datetime.strptime(contract_date, '%Y-%m-%d')
-            formatted_date = format_date_russian(date_obj)
+            filename_date = date_obj.strftime('%d.%m.%Y')
         except ValueError:
-            formatted_date = contract_date
+            filename_date = contract_date.replace('-', '.')
         
         company_name = company_data.get('name', company_data.get('company_name', 'Компания'))
         
-        filename = get_filename(company_name, contract_number, formatted_date)
+        # Получаем короткое имя исполнителя для filename
+        executor_profile = get_executor_profile(int(executor_profile_id))
+        executor_short = executor_profile.get('short_name', 'Исполнитель') if executor_profile else 'Исполнитель'
+        
+        filename = get_filename(company_name, contract_number, filename_date, executor_short)
     
         save_to_history(
             user_id=current_user.id,
@@ -201,7 +215,11 @@ def download_from_history(history_id):
                 'min_hours': record['min_hours']
             }
         
-        doc_stream = generate_contract(company_data, contract_data)
+        # Используем дефолтный профиль исполнителя при скачивании из истории
+        default_profile = get_executor_profile()
+        profile_id = default_profile['id'] if default_profile else None
+        
+        doc_stream = generate_contract(company_data, contract_data, profile_id)
         filename = record['filename']
         
         response = send_file(
@@ -244,4 +262,108 @@ def save_to_history(user_id: int, inn: str, company_name: str, filename: str, co
     
     conn.commit()
     conn.close()
+
+
+@main_bp.route('/settings')
+@login_required
+def settings():
+    """страница настроек реквизитов исполнителя"""
+    profiles = get_all_executor_profiles()
+    # При заходе на /settings показываем форму создания нового профиля
+    return render_template('settings.html', 
+                         profiles=profiles, 
+                         current_profile=None,
+                         user=current_user)
+
+
+@main_bp.route('/settings/save', methods=['POST'])
+@login_required
+def save_settings():
+    """сохранение реквизитов исполнителя"""
+    profile_id = request.form.get('profile_id')
+    
+    data = {
+        'profile_name': request.form.get('profile_name', '').strip(),
+        'org_type': request.form.get('org_type', '').strip(),
+        'full_name': request.form.get('full_name', '').strip(),
+        'short_name': request.form.get('short_name', '').strip(),
+        'legal_address': request.form.get('legal_address', '').strip(),
+        'postal_address': request.form.get('postal_address', '').strip(),
+        'inn': request.form.get('inn', '').strip(),
+        'ogrn': request.form.get('ogrn', '').strip(),
+        'bank_account': request.form.get('bank_account', '').strip(),
+        'bank_name': request.form.get('bank_name', '').strip(),
+        'bik': request.form.get('bik', '').strip(),
+        'corr_account': request.form.get('corr_account', '').strip(),
+        'email': request.form.get('email', '').strip(),
+        'phone': request.form.get('phone', '').strip(),
+    }
+    
+    # Базовая валидация
+    if not data['profile_name'] or not data['full_name'] or not data['inn']:
+        flash('Заполните обязательные поля: Название профиля, Полное название, ИНН', 'error')
+        return redirect(url_for('main.settings'))
+    
+    try:
+        save_executor_profile(data, int(profile_id) if profile_id else None)
+        flash('Реквизиты успешно сохранены', 'success')
+    except Exception as e:
+        flash(f'Ошибка при сохранении: {str(e)}', 'error')
+    
+    return redirect(url_for('main.settings'))
+
+
+@main_bp.route('/settings/set-default/<int:profile_id>', methods=['POST'])
+@login_required
+def set_default(profile_id):
+    """установить профиль как дефолтный"""
+    try:
+        set_default_profile(profile_id)
+        flash('Профиль установлен по умолчанию', 'success')
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'error')
+    
+    return redirect(url_for('main.settings'))
+
+
+@main_bp.route('/settings/delete/<int:profile_id>', methods=['POST'])
+@login_required
+def delete_profile(profile_id):
+    """удалить профиль"""
+    try:
+        conn = get_db_connection()
+        # Проверяем что это не последний профиль
+        count = conn.execute('SELECT COUNT(*) FROM executor_profiles').fetchone()[0]
+        if count <= 1:
+            flash('Нельзя удалить последний профиль', 'error')
+        else:
+            # Проверяем что это не дефолтный
+            is_default = conn.execute(
+                'SELECT is_default FROM executor_profiles WHERE id = ?', (profile_id,)
+            ).fetchone()
+            
+            if is_default and is_default[0] == 1:
+                flash('Нельзя удалить профиль по умолчанию. Сначала установите другой профиль как основной', 'error')
+            else:
+                conn.execute('DELETE FROM executor_profiles WHERE id = ?', (profile_id,))
+                conn.commit()
+                flash('Профиль удалён', 'success')
+        conn.close()
+    except Exception as e:
+        flash(f'Ошибка: {str(e)}', 'error')
+    
+    return redirect(url_for('main.settings'))
+
+
+@main_bp.route('/settings/edit/<int:profile_id>')
+@login_required
+def edit_profile(profile_id):
+    """редактировать профиль"""
+    profiles = get_all_executor_profiles()
+    current_profile = get_executor_profile(profile_id)
+    return render_template('settings.html', 
+                         profiles=profiles, 
+                         current_profile=current_profile,
+                         edit_mode=True,
+                         user=current_user)
 

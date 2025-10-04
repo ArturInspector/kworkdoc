@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки реквизитов{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Заголовок -->
+    <div class="mb-8 flex justify-between items-center">
+        <div>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Управление профилями исполнителя</h2>
+            <p class="text-dark-muted text-sm">Создавайте и редактируйте реквизиты для договоров</p>
+        </div>
+        <a href="{{ url_for('main.dashboard') }}" 
+           class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg hover:border-purple-500 text-dark-text transition-all">
+            ← Назад
+        </a>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'error' %}bg-red-500/10 border border-red-500 text-red-400{% else %}bg-green-500/10 border border-green-500 text-green-400{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Список профилей -->
+        <div class="lg:col-span-1">
+            <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border">
+                <h3 class="text-lg font-medium text-white mb-4">Профили</h3>
+                
+                <div class="space-y-2">
+                    {% for profile in profiles %}
+                    <div class="bg-dark-bg border {% if current_profile and current_profile.id == profile.id %}border-purple-500{% else %}border-dark-border{% endif %} rounded-lg p-3 hover:border-purple-500/50 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-white font-medium">{{ profile.profile_name }}</span>
+                                {% if profile.is_default %}
+                                <span class="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded">по умолчанию</span>
+                                {% endif %}
+                            </div>
+                            <span class="px-2 py-0.5 bg-dark-bg text-dark-muted text-xs rounded">{{ profile.org_type }}</span>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-2">
+                            <a href="{{ url_for('main.edit_profile', profile_id=profile.id) }}"
+                               class="flex-1 text-center px-3 py-1.5 bg-purple-500/20 text-purple-400 text-xs rounded hover:bg-purple-500/30 transition-all">
+                                Редактировать
+                            </a>
+                            
+                            {% if not profile.is_default %}
+                            <form action="{{ url_for('main.set_default', profile_id=profile.id) }}" method="POST" class="flex-1">
+                                <button type="submit"
+                                        class="w-full px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs rounded hover:bg-blue-500/30 transition-all">
+                                    Сделать основным
+                                </button>
+                            </form>
+                            {% endif %}
+                            
+                            {% if profiles|length > 1 and not profile.is_default %}
+                            <form action="{{ url_for('main.delete_profile', profile_id=profile.id) }}" 
+                                  method="POST" 
+                                  onsubmit="return confirm('Удалить профиль {{ profile.profile_name }}?')"
+                                  class="flex-shrink-0">
+                                <button type="submit"
+                                        class="px-3 py-1.5 bg-red-500/20 text-red-400 text-xs rounded hover:bg-red-500/30 transition-all">
+                                    Удалить
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <a href="{{ url_for('main.settings') }}" 
+                   class="mt-4 block w-full text-center px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-all">
+                    + Создать новый профиль
+                </a>
+            </div>
+        </div>
+
+        <!-- Форма редактирования/создания -->
+        <div class="lg:col-span-2">
+            <form action="{{ url_for('main.save_settings') }}" method="POST" class="space-y-6">
+                {% if current_profile %}
+                <input type="hidden" name="profile_id" value="{{ current_profile.id }}">
+                {% endif %}
+                
+                <!-- Основная информация -->
+                <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border">
+                    <h3 class="text-lg font-medium text-white mb-4">
+                        {% if current_profile %}Редактирование профиля{% else %}Новый профиль{% endif %}
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Название профиля *
+                            </label>
+                            <input type="text" name="profile_name" required
+                                   value="{{ current_profile.profile_name if current_profile else '' }}"
+                                   placeholder="Например: ИП Лукманов"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Тип организации *
+                            </label>
+                            <select name="org_type" required
+                                    class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                                <option value="ИП" {% if current_profile and current_profile.org_type == 'ИП' %}selected{% endif %}>ИП</option>
+                                <option value="ООО" {% if current_profile and current_profile.org_type == 'ООО' %}selected{% endif %}>ООО</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Полное наименование *
+                            </label>
+                            <input type="text" name="full_name" required
+                                   value="{{ current_profile.full_name if current_profile else '' }}"
+                                   placeholder="Индивидуальный предприниматель Иванов Иван Иванович"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Краткое наименование
+                            </label>
+                            <input type="text" name="short_name"
+                                   value="{{ current_profile.short_name if current_profile else '' }}"
+                                   placeholder="ИП Иванов И.И."
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Адреса -->
+                <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border">
+                    <h3 class="text-lg font-medium text-white mb-4">Адреса</h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Юридический адрес
+                            </label>
+                            <input type="text" name="legal_address"
+                                   value="{{ current_profile.legal_address if current_profile else '' }}"
+                                   placeholder="123456, Регион, г. Город, ул. Улица, д. 1"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Почтовый адрес
+                            </label>
+                            <input type="text" name="postal_address"
+                                   value="{{ current_profile.postal_address if current_profile else '' }}"
+                                   placeholder="123456, Регион, г. Город, ул. Улица, д. 1"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Реквизиты -->
+                <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border">
+                    <h3 class="text-lg font-medium text-white mb-4">Реквизиты</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                ИНН *
+                            </label>
+                            <input type="text" name="inn" required
+                                   value="{{ current_profile.inn if current_profile else '' }}"
+                                   placeholder="123456789012"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                ОГРН/ОГРНИП
+                            </label>
+                            <input type="text" name="ogrn"
+                                   value="{{ current_profile.ogrn if current_profile else '' }}"
+                                   placeholder="1234567890123"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Банковские реквизиты -->
+                <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border">
+                    <h3 class="text-lg font-medium text-white mb-4">Банковские реквизиты</h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Расчётный счёт
+                            </label>
+                            <input type="text" name="bank_account"
+                                   value="{{ current_profile.bank_account if current_profile else '' }}"
+                                   placeholder="40702810000000000000"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Наименование банка
+                            </label>
+                            <input type="text" name="bank_name"
+                                   value="{{ current_profile.bank_name if current_profile else '' }}"
+                                   placeholder='ПАО "Сбербанк"'
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium mb-2 text-dark-text">
+                                    БИК
+                                </label>
+                                <input type="text" name="bik"
+                                       value="{{ current_profile.bik if current_profile else '' }}"
+                                       placeholder="044525225"
+                                       class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2 text-dark-text">
+                                    Корр. счёт
+                                </label>
+                                <input type="text" name="corr_account"
+                                       value="{{ current_profile.corr_account if current_profile else '' }}"
+                                       placeholder="30101810400000000225"
+                                       class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Контакты -->
+                <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border">
+                    <h3 class="text-lg font-medium text-white mb-4">Контактные данные</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Email
+                            </label>
+                            <input type="email" name="email"
+                                   value="{{ current_profile.email if current_profile else '' }}"
+                                   placeholder="info@example.ru"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-dark-text">
+                                Телефон
+                            </label>
+                            <input type="text" name="phone"
+                                   value="{{ current_profile.phone if current_profile else '' }}"
+                                   placeholder="8 (800) 000-00-00"
+                                   class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Кнопки -->
+                <div class="flex justify-end gap-3">
+                    {% if current_profile %}
+                    <a href="{{ url_for('main.settings') }}" 
+                       class="px-6 py-3 bg-dark-bg border border-dark-border rounded-lg text-dark-text hover:border-purple-500 transition-all">
+                        Отмена
+                    </a>
+                    {% endif %}
+                    <button type="submit" 
+                            class="gradient-btn px-8 py-3 rounded-lg text-white font-semibold shadow-lg">
+                        {% if current_profile %}Сохранить изменения{% else %}Создать профиль{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

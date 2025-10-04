@@ -104,8 +104,132 @@ def init_db():
         )
     ''')
     
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS executor_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_name TEXT NOT NULL,
+            org_type TEXT NOT NULL,
+            full_name TEXT NOT NULL,
+            short_name TEXT,
+            legal_address TEXT,
+            postal_address TEXT,
+            inn TEXT NOT NULL,
+            ogrn TEXT,
+            bank_account TEXT,
+            bank_name TEXT,
+            bik TEXT,
+            corr_account TEXT,
+            email TEXT,
+            phone TEXT,
+            is_default INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    existing = conn.execute('SELECT COUNT(*) FROM executor_profiles').fetchone()[0]
+    if existing == 0:
+        conn.execute('''
+            INSERT INTO executor_profiles (
+                profile_name, org_type, full_name, short_name,
+                legal_address, postal_address, inn, ogrn,
+                bank_account, bank_name, bik, corr_account,
+                email, phone, is_default
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            'ИП Лукманов',
+            'ИП',
+            'Индивидуальный предприниматель Лукманов Марат Ильгизович',
+            'ИП Лукманов М.И.',
+            '420032, Республика Татарстан, г. Казань, ул. Краснококшайская, д. 60, кв. 420',
+            '420032, Республика Татарстан, г. Казань, ул. Краснококшайская, д. 60, кв. 420',
+            '164509365669',
+            '313168915600018',
+            '40802810700490014077',
+            'Филиал "Центральный" Банка ВТБ (ПАО)',
+            '044525411',
+            '30101810145250000411',
+            'info@standart-express.ru',
+            '8 (800) 700-51-53',
+            1
+        ))
+    
     conn.commit()
     conn.close()
     
     print("база данных инициализирована")
+
+
+def get_executor_profile(profile_id=None):
+    """Получить профиль исполнителя (дефолтный или по ID)"""
+    conn = get_db_connection()
+    
+    if profile_id:
+        profile = conn.execute(
+            'SELECT * FROM executor_profiles WHERE id = ?', (profile_id,)
+        ).fetchone()
+    else:
+        profile = conn.execute(
+            'SELECT * FROM executor_profiles WHERE is_default = 1'
+        ).fetchone()
+    
+    conn.close()
+    return dict(profile) if profile else None
+
+
+def get_all_executor_profiles():
+    """Получить все профили исполнителя"""
+    conn = get_db_connection()
+    profiles = conn.execute(
+        'SELECT * FROM executor_profiles ORDER BY is_default DESC, created_at DESC'
+    ).fetchall()
+    conn.close()
+    return [dict(p) for p in profiles]
+
+
+def save_executor_profile(data, profile_id=None):
+    """Сохранить или обновить профиль исполнителя"""
+    conn = get_db_connection()
+    
+    if profile_id:
+        # Обновление существующего
+        conn.execute('''
+            UPDATE executor_profiles SET
+                profile_name = ?, org_type = ?, full_name = ?, short_name = ?,
+                legal_address = ?, postal_address = ?, inn = ?, ogrn = ?,
+                bank_account = ?, bank_name = ?, bik = ?, corr_account = ?,
+                email = ?, phone = ?
+            WHERE id = ?
+        ''', (
+            data['profile_name'], data['org_type'], data['full_name'], data['short_name'],
+            data['legal_address'], data['postal_address'], data['inn'], data['ogrn'],
+            data['bank_account'], data['bank_name'], data['bik'], data['corr_account'],
+            data['email'], data['phone'], profile_id
+        ))
+    else:
+        # Создание нового
+        conn.execute('''
+            INSERT INTO executor_profiles (
+                profile_name, org_type, full_name, short_name,
+                legal_address, postal_address, inn, ogrn,
+                bank_account, bank_name, bik, corr_account,
+                email, phone, is_default
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        ''', (
+            data['profile_name'], data['org_type'], data['full_name'], data['short_name'],
+            data['legal_address'], data['postal_address'], data['inn'], data['ogrn'],
+            data['bank_account'], data['bank_name'], data['bik'], data['corr_account'],
+            data['email'], data['phone']
+        ))
+    
+    conn.commit()
+    conn.close()
+
+
+def set_default_profile(profile_id):
+    """Установить профиль как дефолтный"""
+    conn = get_db_connection()
+    conn.execute('UPDATE executor_profiles SET is_default = 0')
+    conn.execute('UPDATE executor_profiles SET is_default = 1 WHERE id = ?', (profile_id,))
+    conn.commit()
+    conn.close()
 

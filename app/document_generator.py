@@ -64,6 +64,7 @@ def format_date_russian(date_obj: datetime) -> str:
 
 def generate_contract(company_data: dict,
                       contract_data: dict = None,
+                      executor_profile_id: int = None,
                       template_path: str = 'templates/contract_template.docx') -> BytesIO:
     """Генерирует договор (основная)."""
     try:
@@ -71,7 +72,7 @@ def generate_contract(company_data: dict,
     except FileNotFoundError:
         raise FileNotFoundError(f'Не найден шаблон: {template_path}')
     
-    context = prepare_context(company_data, contract_data)
+    context = prepare_context(company_data, contract_data, executor_profile_id)
     doc.render(context)
     
     file_stream = BytesIO()
@@ -152,8 +153,9 @@ def _format_capital(capital: str) -> dict:
     return {'large_capital': False, 'capital_text': ''}
 
 
-def prepare_context(company_data: dict, contract_data: dict = None) -> dict:
+def prepare_context(company_data: dict, contract_data: dict = None, executor_profile_id: int = None) -> dict:
     """Подготавливает контекст для заполнения шаблона договора."""
+    from app.models import get_executor_profile
     
     # Используем данные из формы или генерируем автоматически
     if contract_data:
@@ -191,6 +193,25 @@ def prepare_context(company_data: dict, contract_data: dict = None) -> dict:
         'current_date': current_date,
     }
     
+    # Данные ИСПОЛНИТЕЛЯ из БД (используем переданный profile_id или дефолтный)
+    executor = get_executor_profile(executor_profile_id)
+    if executor:
+        context.update({
+            'executor_name': executor.get('full_name', ''),
+            'executor_short_name': executor.get('short_name', ''),
+            'executor_legal_address': executor.get('legal_address', ''),
+            'executor_postal_address': executor.get('postal_address', ''),
+            'executor_inn': executor.get('inn', ''),
+            'executor_ogrnip': executor.get('ogrn', ''),
+            'executor_ogrn': executor.get('ogrn', ''),
+            'executor_bank_account': executor.get('bank_account', ''),
+            'executor_bank_name': executor.get('bank_name', ''),
+            'executor_bik': executor.get('bik', ''),
+            'executor_corr_account': executor.get('corr_account', ''),
+            'executor_email': executor.get('email', ''),
+            'executor_phone': executor.get('phone', ''),
+        })
+    
     if contract_data:
         context['services'] = contract_data.get('services', '')
         context['city'] = contract_data.get('city', '')
@@ -218,7 +239,7 @@ def generate_contract_number() -> str:
     return f"Contract-{timestamp}"
 
 
-def get_filename(company_name: str, contract_number: str, contract_date: str) -> str:
+def get_filename(company_name: str, contract_number: str, contract_date: str, executor_short_name: str = 'Исполнитель') -> str:
     """Генерирует имя файла для договора."""
     safe_name = ''.join(
         c for c in company_name
@@ -226,5 +247,11 @@ def get_filename(company_name: str, contract_number: str, contract_date: str) ->
     )
     safe_name = safe_name.strip()[:50]
     
-    return f"Договор №{contract_number} от {contract_date} — {safe_name} — ИП Лукманов М.И..docx"
+    safe_executor = ''.join(
+        c for c in executor_short_name
+        if c.isalnum() or c in (' ', '-', '_', '.')
+    )
+    safe_executor = safe_executor.strip()[:30]
+    
+    return f"Договор №{contract_number} от {contract_date} — {safe_name} — {safe_executor}.docx"
 

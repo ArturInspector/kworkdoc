@@ -97,6 +97,10 @@
                         история
                         <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 group-hover:w-full transition-all duration-300"></span>
                     </a>
+                    <a href="{{ url_for('main.settings') }}" class="text-sm text-dark-muted hover:text-white transition-all duration-200 relative group">
+                        настройки
+                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 group-hover:w-full transition-all duration-300"></span>
+                    </a>
                     <span class="text-xs lg:text-sm px-2 lg:px-3 py-1 bg-dark-bg rounded-full border border-dark-border text-dark-text">{{ current_user.username }}</span>
                     <a href="{{ url_for('auth.logout') }}" class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-xs lg:text-sm px-3 lg:px-4 py-2 rounded-md transition-all duration-200 hover:shadow-lg">выход</a>
                 </div>
@@ -113,6 +117,7 @@
             <div id="mobileMenu" class="hidden md:hidden pb-4 space-y-3">
                 <a href="{{ url_for('main.dashboard') }}" class="block text-sm text-dark-muted hover:text-white transition py-2">главная</a>
                 <a href="{{ url_for('main.history') }}" class="block text-sm text-dark-muted hover:text-white transition py-2">история</a>
+                <a href="{{ url_for('main.settings') }}" class="block text-sm text-dark-muted hover:text-white transition py-2">настройки</a>
                 <div class="flex items-center justify-between pt-2 border-t border-dark-border">
                     <span class="text-sm text-dark-text">{{ current_user.username }}</span>
                     <a href="{{ url_for('auth.logout') }}" class="bg-gradient-to-r from-red-600 to-red-700 text-white text-sm px-4 py-2 rounded-md">выход</a>
