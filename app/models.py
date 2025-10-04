@@ -93,6 +93,12 @@ def init_db():
             inn TEXT NOT NULL,
             company_name TEXT,
             filename TEXT NOT NULL,
+            contract_number TEXT,
+            contract_date TEXT,
+            services TEXT,
+            city TEXT,
+            hourly_rate TEXT,
+            min_hours TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
