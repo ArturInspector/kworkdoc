@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Генератор договоров Kwork (название) - Вход{% endblock %}
+{% block title %}Генератор договоров - Вход{% endblock %}
 
 {% block content %}
 <div class="min-h-[80vh] flex items-center justify-center px-4">
     <div class="bg-dark-card border border-dark-border rounded-lg shadow-2xl p-6 sm:p-8 w-full max-w-md animate-scale-in">
-        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2 text-white">Вход в систему</h2>
-        <p class="text-center text-dark-muted text-xs sm:text-sm mb-6 sm:mb-8">Введите свои учетные данные</p>
-            
+        <!-- Форма входа -->
+        <div id="login-form" {% if show_reset %}style="display: none;"{% endif %}>
+            <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2 text-white">Вход в систему</h2>
+            <p class="text-center text-dark-muted text-xs sm:text-sm mb-6 sm:mb-8">Введите свои учетные данные</p>
+                
             <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-6">
                 <div class="group">
                     <label for="username" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">Логин</label>
@@ -17,7 +19,7 @@
                         id="username" 
                         required
                         class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
-                        placeholder="Введите логин"
+                        placeholder="введите логин"
                         autocomplete="username"
                     >
                 </div>
@@ -42,7 +44,93 @@
                     Войти
                 </button>
             </form>
+            
+            <div class="mt-6 text-center">
+                <button 
+                    type="button"
+                    onclick="showResetForm()"
+                    class="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                    Сбросить пароль
+                </button>
+            </div>
+        </div>
+
+        <!-- Форма сброса пароля -->
+        <div id="reset-form" {% if not show_reset %}style="display: none;"{% endif %}>
+            <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2 text-white">Сброс пароля</h2>
+            <p class="text-center text-dark-muted text-xs sm:text-sm mb-6 sm:mb-8">Введите данные для сброса пароля</p>
+                
+            <form method="POST" action="{{ url_for('auth.reset_password') }}" class="space-y-6">
+                <div class="group">
+                    <label for="reset_username" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">Логин</label>
+                    <input 
+                        type="text" 
+                        name="username" 
+                        id="reset_username" 
+                        required
+                        class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                        placeholder="Введите логин пользователя"
+                        autocomplete="username"
+                    >
+                </div>
+                
+                <div class="group">
+                    <label for="new_password" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">Новый пароль</label>
+                    <input 
+                        type="password" 
+                        name="new_password" 
+                        id="new_password" 
+                        required
+                        class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                        placeholder="новый пароль (6 символов)"
+                        autocomplete="new-password"
+                    >
+                </div>
+                
+                <div class="group">
+                    <label for="owner_key" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">ключ владельца</label>
+                    <input 
+                        type="password" 
+                        name="owner_key" 
+                        id="owner_key" 
+                        required
+                        class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                        placeholder="Введите ключ владельца"
+                    >
+                </div>
+                
+                <button 
+                    type="submit"
+                    class="gradient-btn w-full text-white font-semibold py-3 rounded-lg shadow-lg"
+                >
+                    Сбросить пароль
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <button 
+                    type="button"
+                    onclick="showLoginForm()"
+                    class="text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                    ← Вернуться к входу
+                </button>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+function showResetForm() {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('reset-form').style.display = 'block';
+}
+
+function showLoginForm() {
+    document.getElementById('reset-form').style.display = 'none';
+    document.getElementById('login-form').style.display = 'block';
+}
+</script>
 {% endblock %}
 

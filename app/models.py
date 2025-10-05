@@ -59,6 +59,24 @@ class User(UserMixin):
             return False
         finally:
             conn.close()
+    
+    @staticmethod
+    def reset_password(username, new_password):
+        """Сбросить пароль пользователя"""
+        password_hash = generate_password_hash(new_password)
+        conn = get_db_connection()
+        
+        try:
+            cursor = conn.execute(
+                'UPDATE users SET password_hash = ? WHERE username = ?',
+                (password_hash, username)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception:
+            return False
+        finally:
+            conn.close()
 
 
 @login_manager.user_loader
@@ -99,10 +117,24 @@ def init_db():
             city TEXT,
             hourly_rate TEXT,
             min_hours TEXT,
+            executor_profile_id INTEGER,
+            executor_name TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (executor_profile_id) REFERENCES executor_profiles (id)
         )
     ''')
+    
+    # Добавляем колонки для исполнителя если их нет (миграция для существующих БД)
+    try:
+        conn.execute('ALTER TABLE contract_history ADD COLUMN executor_profile_id INTEGER')
+    except:
+        pass  # Колонка уже существует
+    
+    try:
+        conn.execute('ALTER TABLE contract_history ADD COLUMN executor_name TEXT')
+    except:
+        pass  # Колонка уже существует
     
     conn.execute('''
         CREATE TABLE IF NOT EXISTS executor_profiles (

@@ -5,25 +5,29 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    """Базовая конфигурация приложения"""
+    """config"""
     
     # Flask
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database
+    # Sql
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.getenv('DATABASE_PATH', 'instance/database.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # API Configuration
     DATANEWTON_API_KEY = os.getenv('DATANEWTON_API_KEY', 'mi76aFMdgvml')
+    API_FNS_API_KEY = os.getenv('API_FNS_API_KEY', '')
     DADATA_API_KEY = os.getenv('DADATA_API_KEY', '')
     
     # Upload/Download
     UPLOAD_FOLDER = 'instance/uploads'
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max
     
-    # Session
-    PERMANENT_SESSION_LIFETIME = 3600  # 1 час
+    # Session lifetime
+    PERMANENT_SESSION_LIFETIME = 3600  # час
+    
+    # Password reset
+    OWNER_RESET_KEY = os.getenv('OWNER_RESET_KEY', 'owner-reset-key-2024')
 
 
 class DevelopmentConfig(Config):

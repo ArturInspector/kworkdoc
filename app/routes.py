@@ -8,7 +8,6 @@ from app.models import (get_db_connection, get_executor_profile,
 import traceback
 from datetime import datetime
 from app.document_generator import format_date_russian
-from urllib.parse import quote
 
 main_bp = Blueprint('main', __name__)
 
@@ -36,6 +35,7 @@ def check_inn():
     
     data = request.get_json()
     inn = data.get('inn', '').strip() if data else ''
+    use_api_fns = data.get('use_api_fns', False) if data else False
     
     # Валидация
     if not inn:
@@ -46,13 +46,22 @@ def check_inn():
     
     try:
         # Получение данных по ИНН
-        company_data = fetch_company_data(inn)
+        company_data = fetch_company_data(inn, use_api_fns=use_api_fns)
         
         if not company_data:
-            return jsonify({
-                'success': False, 
-                'error': f'Компания с ИНН {inn} не найдена ни в одном из источников'
-            }), 404
+            # Если основной API не нашел данные, предлагаем резервный
+            if not use_api_fns:
+                return jsonify({
+                    'success': False, 
+                    'error': 'not_found',
+                    'message': f'Компания с ИНН {inn} не найдена в основном источнике',
+                    'suggest_backup': True
+                }), 404
+            else:
+                return jsonify({
+                    'success': False, 
+                    'error': f'Компания с ИНН {inn} не найдена ни в одном из источников'
+                }), 404
         
         return jsonify({
             'success': True,
@@ -139,7 +148,9 @@ def generate():
             inn=inn,
             company_name=company_name,
             filename=filename,
-            contract_data=contract_data
+            contract_data=contract_data,
+            executor_profile_id=int(executor_profile_id),
+            executor_name=executor_short
         )
         
         response = send_file(
@@ -148,8 +159,8 @@ def generate():
             download_name=filename,
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
-
-        response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{quote(filename)}"
+        
+        # Имя файла уже транслитерировано, дополнительное кодирование не нужно
         return response
         
     except FileNotFoundError as e:
@@ -215,9 +226,11 @@ def download_from_history(history_id):
                 'min_hours': record['min_hours']
             }
         
-        # Используем дефолтный профиль исполнителя при скачивании из истории
-        default_profile = get_executor_profile()
-        profile_id = default_profile['id'] if default_profile else None
+        # Используем сохраненный профиль исполнителя или дефолтный
+        profile_id = record['executor_profile_id'] if record['executor_profile_id'] else None
+        if not profile_id:
+            default_profile = get_executor_profile()
+            profile_id = default_profile['id'] if default_profile else None
         
         doc_stream = generate_contract(company_data, contract_data, profile_id)
         filename = record['filename']
@@ -228,9 +241,7 @@ def download_from_history(history_id):
             download_name=filename,
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
-        # Явно устанавливаем правильный заголовок для кириллицы (RFC 6266)
-        from urllib.parse import quote
-        response.headers['Content-Disposition'] = f"attachment; filename*=UTF-8''{quote(filename)}"
+        # Имя файла уже транслитерировано при сохранении в историю
         return response
         
     except Exception as e:
@@ -239,25 +250,30 @@ def download_from_history(history_id):
         return redirect(url_for('main.history'))
 
 
-def save_to_history(user_id: int, inn: str, company_name: str, filename: str, contract_data: dict = None):
+def save_to_history(user_id: int, inn: str, company_name: str, filename: str, 
+                    contract_data: dict = None, executor_profile_id: int = None, 
+                    executor_name: str = None):
     """сохранение записи в историю генераций"""
     conn = get_db_connection()
     
     if contract_data:
         conn.execute(
             '''INSERT INTO contract_history 
-               (user_id, inn, company_name, filename, contract_number, contract_date, services, city, hourly_rate, min_hours)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+               (user_id, inn, company_name, filename, contract_number, contract_date, 
+                services, city, hourly_rate, min_hours, executor_profile_id, executor_name)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (user_id, inn, company_name, filename, 
              contract_data.get('contract_number'), contract_data.get('contract_date'),
              contract_data.get('services'), contract_data.get('city'),
-             contract_data.get('hourly_rate'), contract_data.get('min_hours'))
+             contract_data.get('hourly_rate'), contract_data.get('min_hours'),
+             executor_profile_id, executor_name)
         )
     else:
         conn.execute(
-            '''INSERT INTO contract_history (user_id, inn, company_name, filename)
-               VALUES (?, ?, ?, ?)''',
-            (user_id, inn, company_name, filename)
+            '''INSERT INTO contract_history 
+               (user_id, inn, company_name, filename, executor_profile_id, executor_name)
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (user_id, inn, company_name, filename, executor_profile_id, executor_name)
         )
     
     conn.commit()
