@@ -18,11 +18,10 @@ RUN pip install -r requirements.txt
 # Копируем код приложения
 COPY . .
 
-# Создаем директории для данных
-RUN mkdir -p instance/uploads
-
-# Создаем пользователя для запуска приложения
+# Создаем пользователя и директории
 RUN useradd -m -u 1000 appuser && \
+    mkdir -p instance/uploads && \
+    chmod -R 777 /app/instance && \
     chown -R appuser:appuser /app
 
 # Переключаемся на пользователя

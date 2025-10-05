@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.3'
 
 services:
   web:
@@ -24,4 +24,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
