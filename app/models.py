@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from app import login_manager
@@ -186,9 +187,54 @@ def init_db():
         ))
     
     conn.commit()
+    
+    # Создаем пользователей из переменных окружения
+    create_default_users(conn)
+    
     conn.close()
     
     print("база данных инициализирована")
+
+
+def create_default_users(conn):
+    """по умолчанию из переменных окружения"""
+    users_data = [
+        {
+            'login': os.getenv('USER1_LOGIN'),
+            'password': os.getenv('USER1_PASSWORD')
+        },
+        {
+            'login': os.getenv('USER2_LOGIN'),
+            'password': os.getenv('USER2_PASSWORD')
+        }
+    ]
+    
+    for user_data in users_data:
+        if not user_data['login'] or not user_data['password']:
+            continue
+        existing = conn.execute(
+            'SELECT id FROM users WHERE username = ?', (user_data['login'],)
+        ).fetchone()
+        
+        if existing:
+            password_hash = generate_password_hash(user_data['password'])
+            conn.execute(
+                'UPDATE users SET password_hash = ? WHERE username = ?',
+                (password_hash, user_data['login'])
+            )
+            print(f"Пароль для '{user_data['login']}' обновлен")
+        else:
+            try:
+                password_hash = generate_password_hash(user_data['password'])
+                conn.execute(
+                    'INSERT INTO users (username, password_hash) VALUES (?, ?)',
+                    (user_data['login'], password_hash)
+                )
+                print(f"Пользователь '{user_data['login']}' создан")
+            except sqlite3.IntegrityError:
+                print(f"Пользователь '{user_data['login']}' уже существует")
+    
+    conn.commit()
 
 
 def get_executor_profile(profile_id=None):

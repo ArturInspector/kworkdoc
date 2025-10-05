@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Устанавливаем Python зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Копируем код приложения
 COPY . .
@@ -32,4 +32,4 @@ USER appuser
 EXPOSE 5000
 
 # Команда запуска
-CMD ["sh", "-c", "python3 create_users.py && gunicorn --bind 0.0.0.0:5000 --workers 4 --timeout 120 run:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "run:app"]
