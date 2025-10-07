@@ -58,16 +58,6 @@ def fetch_company_data(inn: str, use_api: bool = True, use_api_fns: bool = False
             except Exception as e:
                 print(f"[API] ✗ API-FNS: {e}")
         
-        if DADATA_API_KEY:
-            try:
-                print(f"[API] DaData для ИНН {inn}")
-                data = fetch_from_dadata(inn)
-                if data:
-                    print(f"[API] ✓ DaData успешно")
-                    return data
-            except Exception as e:
-                print(f"[API] ✗ DaData: {e}")
-        
         print(f"[API] Используем mock данные")
     
     company_data = MOCK_DATA.get(inn)
@@ -102,6 +92,10 @@ def fetch_from_datanewton(inn: str) -> dict:
         
         print(f"[DataNewton] Status: {response.status_code}")
         print(f"[DataNewton] Response: {response.text[:500]}")
+        
+        if response.status_code == 409:
+            print("[DataNewton] Контрагент неоднозначно определен (409)")
+            return None
         
         response.raise_for_status()
         data = response.json()
