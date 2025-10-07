@@ -137,6 +137,26 @@ def init_db():
     except:
         pass  # Колонка уже существует
     
+    try:
+        conn.execute('ALTER TABLE contract_history ADD COLUMN pricing_services_json TEXT')
+    except:
+        pass
+    
+    try:
+        conn.execute('ALTER TABLE contract_history ADD COLUMN packing_percentage TEXT')
+    except:
+        pass
+    
+    try:
+        conn.execute('ALTER TABLE contract_history ADD COLUMN prepayment_amount TEXT')
+    except:
+        pass
+    
+    try:
+        conn.execute('ALTER TABLE contract_history ADD COLUMN bank_details TEXT')
+    except:
+        pass
+    
     conn.execute('''
         CREATE TABLE IF NOT EXISTS executor_profiles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -197,7 +217,7 @@ def init_db():
 
 
 def create_default_users(conn):
-    """по умолчанию из переменных окружения"""
+    """Создание пользователей по умолчанию из переменных окружения (только если их нет)"""
     users_data = [
         {
             'login': os.getenv('USER1_LOGIN'),
@@ -212,18 +232,13 @@ def create_default_users(conn):
     for user_data in users_data:
         if not user_data['login'] or not user_data['password']:
             continue
+        
         existing = conn.execute(
             'SELECT id FROM users WHERE username = ?', (user_data['login'],)
         ).fetchone()
         
-        if existing:
-            password_hash = generate_password_hash(user_data['password'])
-            conn.execute(
-                'UPDATE users SET password_hash = ? WHERE username = ?',
-                (password_hash, user_data['login'])
-            )
-            print(f"Пароль для '{user_data['login']}' обновлен")
-        else:
+        if not existing:
+            # Создаем пользователя только если его нет
             try:
                 password_hash = generate_password_hash(user_data['password'])
                 conn.execute(
@@ -233,6 +248,7 @@ def create_default_users(conn):
                 print(f"Пользователь '{user_data['login']}' создан")
             except sqlite3.IntegrityError:
                 print(f"Пользователь '{user_data['login']}' уже существует")
+        # Если пользователь существует - НЕ обновляем пароль!
     
     conn.commit()
 

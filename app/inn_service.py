@@ -9,8 +9,7 @@ DATANEWTON_API_URL = 'https://api.datanewton.ru/v1/counterparty'
 DATANEWTON_API_KEY = os.getenv('DATANEWTON_API_KEY', 'mi76aFMdgvml')
 API_FNS_URL = 'https://api-fns.ru/api/egr'
 API_FNS_API_KEY = os.getenv('API_FNS_API_KEY', '')
-DADATA_API_URL = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs/findById/party'
-DADATA_API_KEY = os.getenv('DADATA_API_KEY', '')
+
 MOCK_DATA = {
     '9728006808': {
         'inn': '9728006808',

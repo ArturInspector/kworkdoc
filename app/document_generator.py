@@ -1,7 +1,8 @@
 """
 Генератор документов - заполнение шаблона DOCX
 """
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, RichText
+from docx.shared import Pt
 from io import BytesIO
 from datetime import datetime
 from app.models import get_executor_profile
@@ -107,6 +108,111 @@ def pluralize_hours(hours: int) -> str:
         return 'часа'
     else:
         return 'часов'
+
+
+def generate_pricing_text(pricing_services: list, contract_data: dict) -> str:
+    """Генерирует текст с расценками на основе массива услуг."""
+    if not pricing_services:
+        return ''
+    
+    result_parts = []
+    
+    # Обрабатываем каждую услугу
+    for service in pricing_services:
+        service_name = service.get('name', 'услуг')
+        city_from = service.get('city_from', '')
+        city_to = service.get('city_to', '')
+        rate = service.get('rate', '')
+        unit = service.get('unit', 'руб./чел./час')
+        min_hours = service.get('min_hours', '')
+        additional_hours = service.get('additional_hours', '0')
+        
+        # Преобразуем числа
+        try:
+            rate_int = int(rate) if rate else 0
+            min_hours_int = int(min_hours) if min_hours else 0
+            additional_hours_int = int(additional_hours) if additional_hours else 0
+        except ValueError:
+            continue
+        
+        # Проверяем валидность: rate должен быть > 0, для почасовой оплаты min_hours тоже
+        is_fixed = unit == 'руб. (фиксированно)'
+        if rate_int == 0:
+            continue
+        if not is_fixed and min_hours_int == 0:
+            continue
+        
+        # Генерируем текст ставки прописью
+        rate_words = number_to_words(rate_int)
+        
+        # Формируем текст города
+        if city_to and city_to.strip():
+            # Если есть откуда и куда - используем "из ... в ..."
+            city_text = f'из г. {city_from} в г. {city_to}'
+        else:
+            # Если только один город - просто "в г. X"
+            city_text = f'в г. {city_from}'
+        
+        if is_fixed:
+            # Для фиксированной ставки не упоминаем часы
+            service_text = (
+                f'Стоимость {service_name} {city_text} составит '
+                f'{rate_int} ({rate_words}) рублей.'
+            )
+        else:
+            # Для почасовой оплаты
+            hours_word = pluralize_hours(min_hours_int)
+            service_text = (
+                f'Стоимость {service_name} {city_text} составит '
+                f'{rate_int} ({rate_words}) {unit}, минимальный заказ {min_hours_int} {hours_word}.'
+            )
+            
+            if additional_hours_int > 0:
+                add_hours_word = pluralize_hours(additional_hours_int)
+                if add_hours_word == 'час':
+                    add_hours_desc = 'дополнительный час'
+                elif add_hours_word == 'часа':
+                    add_hours_desc = 'дополнительных часа'
+                else:
+                    add_hours_desc = 'дополнительных часов'
+                
+                service_text += (
+                    f' Оплачивается {additional_hours_int} {add_hours_desc} '
+                    f'в размере {rate_int} ({rate_words}) {unit} '
+                    f'к отработанному времени за удаленность.'
+                )
+        
+        result_parts.append(service_text)
+    
+    # Добавляем упаковочные материалы
+    packing_percentage = contract_data.get('packing_percentage', '')
+    if packing_percentage and packing_percentage.strip():
+        try:
+            packing_pct = int(packing_percentage)
+            packing_text = (
+                f'Упаковочный материал оплачивается по чеку, '
+                f'так же оплачивается {packing_pct}% от суммы в чеке.'
+            )
+            result_parts.append(packing_text)
+        except ValueError:
+            pass
+    
+    # Добавляем предоплату
+    prepayment_amount = contract_data.get('prepayment_amount', '')
+    if prepayment_amount and prepayment_amount.strip():
+        try:
+            prepayment_int = int(prepayment_amount)
+            if prepayment_int > 0:
+                prepayment_words = number_to_words(prepayment_int)
+                prepayment_text = (
+                    f'Оплачивается предоплата в размере '
+                    f'{prepayment_int} ({prepayment_words}) рублей.'
+                )
+                result_parts.append(prepayment_text)
+        except ValueError:
+            pass
+    
+    return ' '.join(result_parts)
 
 
 def convert_to_genitive(position: str) -> str:
@@ -280,6 +386,7 @@ def prepare_context(company_data: dict, contract_data: dict = None, executor_pro
         'contract_number': contract_number,
         'contract_date': contract_date,
         'current_date': current_date,
+        'bank_details': '',  # По умолчанию пустая строка
     }
     
     # Данные ИСПОЛНИТЕЛЯ из БД (используем переданный profile_id или дефолтный)
@@ -301,31 +408,20 @@ def prepare_context(company_data: dict, contract_data: dict = None, executor_pro
             'executor_corr_account': executor.get('corr_account', ''),
             'executor_email': executor.get('email', ''),
             'executor_phone': executor.get('phone', ''),
-            # Флаги типа организации исполнителя
             'exec_is_ip': org_type == 'ИП',
             'exec_is_ooo': org_type == 'ООО',
         })
     
     if contract_data:
         context['services'] = contract_data.get('services', '')
-        context['city'] = contract_data.get('city', '')
-        context['hourly_rate'] = contract_data.get('hourly_rate', '')
-        context['min_hours'] = contract_data.get('min_hours', '')
-        city = contract_data.get('city', 'Казань')
-        rate = contract_data.get('hourly_rate', '750')
-        hours = contract_data.get('min_hours', '2')
+        pricing_services = contract_data.get('pricing_services', [])
+        hourly_payment_text = generate_pricing_text(pricing_services, contract_data)
+        context['hourly_payment_text'] = hourly_payment_text
         
-        # Преобразуем ставку в число и прописью
-        rate_int = int(rate) if rate and rate.isdigit() else 750
-        rate_words = number_to_words(rate_int)
+        bank_details_text = contract_data.get('bank_details', '')
         
-        hours_int = int(hours) if hours and hours.isdigit() else 2
-        hours_word = pluralize_hours(hours_int)
-        
-        context['hourly_payment_text'] = (
-            f'Стоимость погрузочно-разгрузочных работ по г. {city} составит '
-            f'{rate} ({rate_words}) рублей чел./час. Минимальный заказ {hours} {hours_word}.'
-        )
+        context['bank_details'] = bank_details_text if bank_details_text else ''
+        preview = context['bank_details'][:50] if context['bank_details'] else 'empty'
     
     context.update(_determine_legal_info(company_data))
     context.update(_format_capital(company_data.get('capital', '')))

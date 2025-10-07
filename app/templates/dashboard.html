@@ -31,7 +31,7 @@
                                 id="contract_number" 
                                 required
                                 class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
-                                placeholder="Например: 2025-001"
+                                placeholder=""
                             >
                         </div>
                         
@@ -137,70 +137,108 @@
                             required
                             rows="4"
                             class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted resize-none"
-                            placeholder="В родительном падеже с маленькой буквы, ваши услуги..."
+                            placeholder="Услуги по чему? Пример: погрузочным работам"
                         ></textarea>
+                    </div>
+                    
+                    <div class="group mt-6">
+                        <label for="bank_details" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
+                            Банковские реквизиты (опционально)
+                        </label>
+                        <textarea 
+                            name="bank_details" 
+                            id="bank_details" 
+                            rows="6"
+                            class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted resize-none"
+                            placeholder="Вставьте банковские реквизиты заказчика &#10;Например:&#10;Р/с: 40702810400000000000&#10;Банк: ПАО Сбербанк&#10;К/с: 30101810400000000225&#10;БИК: 044525225"
+                        ></textarea>
+                        <p class="mt-2 text-xs text-dark-muted">    
                     </div>
                 </div>
                 
-                <!-- Блок 3: Почасовая оплата -->
+                <!-- Блок 3: Услуги и расценки -->
                 <div class="bg-dark-bg/50 rounded-lg p-6 border border-dark-border hover:border-purple-500/50 transition-all">
-                    <h3 class="text-lg font-medium text-white mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Условия почасовой оплаты
-                    </h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-white flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Услуги и расценки
+                        </h3>
+                        <button 
+                            type="button" 
+                            id="addServiceBtn"
+                            class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium rounded-lg transition-all duration-200 hover:shadow-lg hover:scale-105 flex items-center gap-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Добавить услугу
+                        </button>
+                    </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="group">
-                            <label for="city" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
-                                Город *
-                            </label>
-                            <input 
-                                type="text" 
-                                name="city" 
-                                id="city" 
-                                required
-                                class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
-                                placeholder="Казань"
-                            >
-                        </div>
-                        
-                        <div class="group">
-                            <label for="hourly_rate" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
-                                Ставка (руб./час) *
-                            </label>
-                            <input 
-                                type="number" 
-                                name="hourly_rate" 
-                                id="hourly_rate" 
-                                required
-                                min="0"
-                                class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
-                                placeholder="750"
-                            >
-                        </div>
-                        
-                        <div class="group">
-                            <label for="min_hours" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
-                                Минимальный заказ (часы) *
-                            </label>
-                            <input 
-                                type="number" 
-                                name="min_hours" 
-                                id="min_hours" 
-                                required
-                                min="1"
-                                class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
-                                placeholder="2"
-                            >
+                    <div id="servicesContainer" class="space-y-4">
+                        <!-- Услуги будут добавляться динамически -->
+                    </div>
+                    
+                    <!-- Дополнительные условия -->
+                    <div class="mt-6 pt-6 border-t border-dark-border">
+                        <h4 class="text-md font-medium text-white mb-4">Дополнительные условия (опционально)</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="group">
+                                <label class="flex items-center mb-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="include_packing"
+                                        class="mr-2 w-4 h-4 text-purple-600 bg-dark-bg border-dark-border rounded focus:ring-purple-500"
+                                    >
+                                    <span class="text-sm font-medium text-dark-text">Упаковочные материалы</span>
+                                </label>
+                                <div id="packingFields" class="hidden mt-2">
+                                    <input 
+                                        type="number" 
+                                        name="packing_percentage" 
+                                        id="packing_percentage"
+                                        min="0"
+                                        max="100"
+                                        value="50"
+                                        class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                                        placeholder="% от суммы чека"
+                                    >
+                                    <p class="mt-1 text-xs text-dark-muted">Процент наценки от суммы чека</p>
+                                </div>
+                            </div>
+                            
+                            <div class="group">
+                                <label class="flex items-center mb-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="include_prepayment"
+                                        class="mr-2 w-4 h-4 text-purple-600 bg-dark-bg border-dark-border rounded focus:ring-purple-500"
+                                    >
+                                    <span class="text-sm font-medium text-dark-text">Предоплата</span>
+                                </label>
+                                <div id="prepaymentFields" class="hidden mt-2">
+                                    <input 
+                                        type="number" 
+                                        name="prepayment_amount" 
+                                        id="prepayment_amount"
+                                        min="0"
+                                        class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                                        placeholder="Сумма предоплаты"
+                                    >
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="mt-4 p-4 bg-blue-900/20 border border-blue-700/30 rounded-lg">
-                        <p class="text-sm text-blue-300">
-                            <strong>Пример формулировки:</strong> "Стоимость погрузочно-разгрузочных работ по г. <span class="text-blue-400" id="preview_city">Казань</span> составит <span class="text-blue-400" id="preview_rate">750</span> (<span class="text-blue-400" id="preview_rate_text">семьсот пятьдесят</span> рублей) чел./час. Минимальный заказ <span class="text-blue-400" id="preview_hours">2</span>."
+                    <div class="mt-6 p-4 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+                        <p class="text-sm text-blue-300 mb-2">
+                            <strong>Превью формулировки:</strong>
                         </p>
+                        <div id="servicesPreview" class="text-sm text-blue-200 space-y-1">
+                            <!-- Превью будет генерироваться динамически -->
+                        </div>
                     </div>
                 </div>
                 

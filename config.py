@@ -27,7 +27,7 @@ class Config:
     PERMANENT_SESSION_LIFETIME = 3600  # час
     
     # Password reset
-    OWNER_RESET_KEY = os.getenv('OWNER_RESET_KEY', 'owner-reset-key-2024')
+    OWNER_RESET_KEY = os.getenv('OWNER_RESET_KEY', 'keyforthe')
 
 
 class DevelopmentConfig(Config):

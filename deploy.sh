@@ -19,15 +19,15 @@ for var in "${required_vars[@]}"; do
 done
 
 echo "Остановка контейнеров..."
-docker-compose down
+sudo docker-compose down
 
 echo "Сборка образа..."
-docker-compose build --no-cache
+sudo docker-compose build --no-cache
 
-mkdir -p instance/uploads templates
+sudo mkdir -p instance/uploads templates
 
 echo "Запуск контейнеров..."
-docker-compose up -d
+sudo docker-compose up -d
 
 sleep 10
 

@@ -8,6 +8,7 @@ from app.models import (get_db_connection, get_executor_profile,
 import traceback
 from datetime import datetime
 from app.document_generator import format_date_russian
+import json
 
 main_bp = Blueprint('main', __name__)
 
@@ -84,10 +85,13 @@ def generate():
     contract_number = request.form.get('contract_number', '').strip()
     contract_date = request.form.get('contract_date', '').strip()
     services = request.form.get('services', '').strip()
-    city = request.form.get('city', '').strip()
-    hourly_rate = request.form.get('hourly_rate', '').strip()
-    min_hours = request.form.get('min_hours', '').strip()
     executor_profile_id = request.form.get('executor_profile_id', '').strip()
+    bank_details = request.form.get('bank_details', '').strip()
+    
+    # Новые поля - услуги с расценками
+    pricing_services_json = request.form.get('pricing_services', '').strip()
+    packing_percentage = request.form.get('packing_percentage', '').strip()
+    prepayment_amount = request.form.get('prepayment_amount', '').strip()
     
     # валидация
     if not inn:
@@ -104,12 +108,18 @@ def generate():
         
     if not services:
         return jsonify({'success': False, 'error': 'Введите описание услуг'}), 400
-        
-    if not city or not hourly_rate or not min_hours:
-        return jsonify({'success': False, 'error': 'Заполните все поля почасовой оплаты'}), 400
+    
+    if not pricing_services_json:
+        return jsonify({'success': False, 'error': 'Добавьте хотя бы одну услугу с расценками'}), 400
     
     if not executor_profile_id:
         return jsonify({'success': False, 'error': 'Выберите профиль исполнителя'}), 400
+    
+    try:
+        import json
+        pricing_services = json.loads(pricing_services_json)
+    except:
+        return jsonify({'success': False, 'error': 'Ошибка в данных услуг'}), 400
     
     try:
         company_data = fetch_company_data(inn)
@@ -121,14 +131,19 @@ def generate():
             'contract_number': contract_number,
             'contract_date': contract_date,
             'services': services,
-            'city': city,
-            'hourly_rate': hourly_rate,
-            'min_hours': min_hours
+            'pricing_services': pricing_services,
+            'packing_percentage': packing_percentage,
+            'prepayment_amount': prepayment_amount,
+            'bank_details': bank_details
         }
+        
+        # Дебаг: проверяем что получили bank_details
+        print(f"DEBUG: bank_details = '{bank_details}'")
+        print(f"DEBUG: contract_data['bank_details'] = '{contract_data.get('bank_details')}'")
         
         doc_stream = generate_contract(company_data, contract_data, int(executor_profile_id))
         
-        # Для имени файла используем простой формат даты (без кириллицы)
+
         try:
             date_obj = datetime.strptime(contract_date, '%Y-%m-%d')
             filename_date = date_obj.strftime('%d.%m.%Y')
@@ -217,13 +232,35 @@ def download_from_history(history_id):
         # Восстанавливаем contract_data из истории
         contract_data = None
         if record['contract_number']:
+ 
+
+            pricing_services = []
+            if record.get('pricing_services_json'):
+                try:
+                    pricing_services = json.loads(record['pricing_services_json'])
+                except:
+                    pass
+            
+            # Если нет новых данных, используем старый формат для обратной совместимости
+            if not pricing_services and record.get('city'):
+                pricing_services = [{
+                    'name': 'погрузочно-разгрузочных работ',
+                    'city_from': record['city'],
+                    'city_to': '',
+                    'rate': record['hourly_rate'],
+                    'unit': 'руб./чел./час',
+                    'min_hours': record['min_hours'],
+                    'additional_hours': '0'
+                }]
+            
             contract_data = {
                 'contract_number': record['contract_number'],
                 'contract_date': record['contract_date'],
                 'services': record['services'],
-                'city': record['city'],
-                'hourly_rate': record['hourly_rate'],
-                'min_hours': record['min_hours']
+                'pricing_services': pricing_services,
+                'packing_percentage': record.get('packing_percentage', ''),
+                'prepayment_amount': record.get('prepayment_amount', ''),
+                'bank_details': record.get('bank_details', '')
             }
         
         # Используем сохраненный профиль исполнителя или дефолтный
@@ -254,19 +291,31 @@ def save_to_history(user_id: int, inn: str, company_name: str, filename: str,
                     contract_data: dict = None, executor_profile_id: int = None, 
                     executor_name: str = None):
     """сохранение записи в историю генераций"""
+    import json
     conn = get_db_connection()
     
     if contract_data:
+        # Сериализуем pricing_services в JSON
+        pricing_services_json = json.dumps(contract_data.get('pricing_services', []), ensure_ascii=False)
+        
         conn.execute(
             '''INSERT INTO contract_history 
                (user_id, inn, company_name, filename, contract_number, contract_date, 
-                services, city, hourly_rate, min_hours, executor_profile_id, executor_name)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                services, city, hourly_rate, min_hours, executor_profile_id, executor_name,
+                pricing_services_json, packing_percentage, prepayment_amount, bank_details)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (user_id, inn, company_name, filename, 
              contract_data.get('contract_number'), contract_data.get('contract_date'),
-             contract_data.get('services'), contract_data.get('city'),
-             contract_data.get('hourly_rate'), contract_data.get('min_hours'),
-             executor_profile_id, executor_name)
+             contract_data.get('services'), 
+             # Оставляем старые поля для обратной совместимости
+             contract_data.get('pricing_services', [{}])[0].get('city_from', '') if contract_data.get('pricing_services') else '',
+             contract_data.get('pricing_services', [{}])[0].get('rate', '') if contract_data.get('pricing_services') else '',
+             contract_data.get('pricing_services', [{}])[0].get('min_hours', '') if contract_data.get('pricing_services') else '',
+             executor_profile_id, executor_name,
+             pricing_services_json,
+             contract_data.get('packing_percentage', ''),
+             contract_data.get('prepayment_amount', ''),
+             contract_data.get('bank_details', ''))
         )
     else:
         conn.execute(
