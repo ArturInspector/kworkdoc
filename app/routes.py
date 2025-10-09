@@ -212,15 +212,18 @@ def download_from_history(history_id):
     """скачать договор из истории (регенерация с теми же параметрами)"""
     
     conn = get_db_connection()
-    record = conn.execute(
+    record_row = conn.execute(
         'SELECT * FROM contract_history WHERE id = ? AND user_id = ?',
         (history_id, current_user.id)
     ).fetchone()
     conn.close()
     
-    if not record:
+    if not record_row:
         flash('Запись не найдена', 'error')
         return redirect(url_for('main.history'))
+    
+    # Конвертируем sqlite3.Row в dict для удобства
+    record = dict(record_row)
     
     try:
         company_data = fetch_company_data(record['inn'])

@@ -289,7 +289,7 @@ def _determine_legal_info(company_data: dict) -> dict:
     legal_form = company_data.get('legal_form', '').lower()
     full_name = company_data.get('full_name', '').lower()
     name = company_data.get('name', '').lower()
-    director = company_data.get('director', '')
+    director = fix_caps(company_data.get('director', ''))  # Обрабатываем ФИО через fix_caps
     position = company_data.get('director_position', 'Генеральный директор')
     
     # Заменяем "Учредитель" на "Генеральный директор"
