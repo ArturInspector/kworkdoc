@@ -375,6 +375,8 @@ def save_settings():
         'corr_account': request.form.get('corr_account', '').strip(),
         'email': request.form.get('email', '').strip(),
         'phone': request.form.get('phone', '').strip(),
+        'director': request.form.get('director', '').strip(),
+        'director_position': request.form.get('director_position', '').strip(),
     }
     
     # Базовая валидация

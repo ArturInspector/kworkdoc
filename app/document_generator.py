@@ -417,6 +417,9 @@ def prepare_context(company_data: dict, contract_data: dict = None, executor_pro
             'executor_corr_account': executor.get('corr_account', ''),
             'executor_email': executor.get('email', ''),
             'executor_phone': executor.get('phone', ''),
+            'executor_director': executor.get('director', ''),
+            'executor_director_position': executor.get('director_position', ''),
+            'executor_director_position_genitive': convert_to_genitive(executor.get('director_position', '')) if executor.get('director_position') else '',
             'exec_is_ip': org_type == 'ИП',
             'exec_is_ooo': org_type == 'ООО',
         })

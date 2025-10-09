@@ -174,10 +174,23 @@ def init_db():
             corr_account TEXT,
             email TEXT,
             phone TEXT,
+            director TEXT,
+            director_position TEXT,
             is_default INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    # Добавляем колонки для директора исполнителя если их нет (миграция)
+    try:
+        conn.execute('ALTER TABLE executor_profiles ADD COLUMN director TEXT')
+    except:
+        pass  # Колонка уже существует
+    
+    try:
+        conn.execute('ALTER TABLE executor_profiles ADD COLUMN director_position TEXT')
+    except:
+        pass  # Колонка уже существует
     
     existing = conn.execute('SELECT COUNT(*) FROM executor_profiles').fetchone()[0]
     if existing == 0:
@@ -186,8 +199,8 @@ def init_db():
                 profile_name, org_type, full_name, short_name,
                 legal_address, postal_address, inn, ogrn,
                 bank_account, bank_name, bik, corr_account,
-                email, phone, is_default
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                email, phone, director, director_position, is_default
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             'ИП Лукманов',
             'ИП',
@@ -203,6 +216,8 @@ def init_db():
             '30101810145250000411',
             'info@standart-express.ru',
             '8 (800) 700-51-53',
+            '',  # director - не нужен для ИП
+            '',  # director_position - не нужен для ИП
             1
         ))
     
@@ -291,13 +306,13 @@ def save_executor_profile(data, profile_id=None):
                 profile_name = ?, org_type = ?, full_name = ?, short_name = ?,
                 legal_address = ?, postal_address = ?, inn = ?, ogrn = ?,
                 bank_account = ?, bank_name = ?, bik = ?, corr_account = ?,
-                email = ?, phone = ?
+                email = ?, phone = ?, director = ?, director_position = ?
             WHERE id = ?
         ''', (
             data['profile_name'], data['org_type'], data['full_name'], data['short_name'],
             data['legal_address'], data['postal_address'], data['inn'], data['ogrn'],
             data['bank_account'], data['bank_name'], data['bik'], data['corr_account'],
-            data['email'], data['phone'], profile_id
+            data['email'], data['phone'], data.get('director', ''), data.get('director_position', ''), profile_id
         ))
     else:
         # Создание нового
@@ -306,13 +321,13 @@ def save_executor_profile(data, profile_id=None):
                 profile_name, org_type, full_name, short_name,
                 legal_address, postal_address, inn, ogrn,
                 bank_account, bank_name, bik, corr_account,
-                email, phone, is_default
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                email, phone, director, director_position, is_default
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         ''', (
             data['profile_name'], data['org_type'], data['full_name'], data['short_name'],
             data['legal_address'], data['postal_address'], data['inn'], data['ogrn'],
             data['bank_account'], data['bank_name'], data['bik'], data['corr_account'],
-            data['email'], data['phone']
+            data['email'], data['phone'], data.get('director', ''), data.get('director_position', '')
         ))
     
     conn.commit()

@@ -140,6 +140,29 @@
                                    placeholder="ИП Иванов И.И."
                                    class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
                         </div>
+                        
+                        <!-- Поля для директора (только для ООО) -->
+                        <div id="directorFields" class="grid grid-cols-1 md:grid-cols-2 gap-6" style="{% if current_profile and current_profile.org_type != 'ООО' %}display:none;{% endif %}">
+                            <div>
+                                <label class="block text-sm font-medium mb-2 text-dark-text">
+                                    ФИО директора <span class="text-dark-muted text-xs">(только для ООО)</span>
+                                </label>
+                                <input type="text" name="director"
+                                       value="{{ current_profile.director if current_profile else '' }}"
+                                       placeholder="Иванов Иван Иванович"
+                                       class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2 text-dark-text">
+                                    Должность директора <span class="text-dark-muted text-xs">(только для ООО)</span>
+                                </label>
+                                <input type="text" name="director_position"
+                                       value="{{ current_profile.director_position if current_profile else '' }}"
+                                       placeholder="Генеральный директор"
+                                       class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -290,4 +313,26 @@
         </div>
     </div>
 </div>
+
+<script>
+// Показывать/скрывать поля директора в зависимости от типа организации
+document.addEventListener('DOMContentLoaded', function() {
+    const orgTypeSelect = document.querySelector('select[name="org_type"]');
+    const directorFields = document.getElementById('directorFields');
+    
+    function toggleDirectorFields() {
+        if (orgTypeSelect.value === 'ООО') {
+            directorFields.style.display = 'grid';
+        } else {
+            directorFields.style.display = 'none';
+            // Очищаем поля при переключении на ИП
+            directorFields.querySelector('input[name="director"]').value = '';
+            directorFields.querySelector('input[name="director_position"]').value = '';
+        }
+    }
+    
+    orgTypeSelect.addEventListener('change', toggleDirectorFields);
+    toggleDirectorFields(); // Инициализация при загрузке
+});
+</script>
 {% endblock %}
