@@ -141,6 +141,36 @@
                         ></textarea>
                     </div>
                     
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <div class="group">
+                            <label for="manual_director" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
+                                ФИО директора (опционально)
+                            </label>
+                            <input 
+                                type="text" 
+                                name="manual_director" 
+                                id="manual_director"
+                                class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                                placeholder="Иванов Иван Иванович"
+                            >
+                            <p class="mt-1 text-xs text-dark-muted">Если API не нашел директора</p>
+                        </div>
+                        
+                        <div class="group">
+                            <label for="manual_director_position" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
+                                Должность директора (опционально)
+                            </label>
+                            <input 
+                                type="text" 
+                                name="manual_director_position" 
+                                id="manual_director_position"
+                                class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted"
+                                placeholder="Генерального директора"
+                            >
+                            <p class="mt-1 text-xs text-dark-muted">Например: Генерального директора</p>
+                        </div>
+                    </div>
+                    
                     <div class="group mt-6">
                         <label for="bank_details" class="block text-sm font-medium mb-2 text-dark-text group-focus-within:text-purple-400 transition-colors">
                             Банковские реквизиты (опционально)
@@ -152,7 +182,7 @@
                             class="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-white placeholder-dark-muted transition-all hover:border-dark-muted resize-none"
                             placeholder="Вставьте банковские реквизиты заказчика &#10;Например:&#10;Р/с: 40702810400000000000&#10;Банк: ПАО Сбербанк&#10;К/с: 30101810400000000225&#10;БИК: 044525225"
                         ></textarea>
-                        <p class="mt-2 text-xs text-dark-muted">    
+                        <p class="mt-2 text-xs text-dark-muted">Для подстановки в договор</p>
                     </div>
                 </div>
                 

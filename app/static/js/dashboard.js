@@ -561,6 +561,16 @@ if (generateForm) {
             formData.append('bank_details', bankDetailsField.value);
         }
         
+        // Опциональные поля директора
+        const manualDirector = document.getElementById('manual_director');
+        const manualDirectorPosition = document.getElementById('manual_director_position');
+        if (manualDirector) {
+            formData.append('manual_director', manualDirector.value);
+        }
+        if (manualDirectorPosition) {
+            formData.append('manual_director_position', manualDirectorPosition.value);
+        }
+        
         // Собираем все услуги
         const serviceItems = document.querySelectorAll('.service-item');
         const servicesData = [];

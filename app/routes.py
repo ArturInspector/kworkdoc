@@ -88,6 +88,10 @@ def generate():
     executor_profile_id = request.form.get('executor_profile_id', '').strip()
     bank_details = request.form.get('bank_details', '').strip()
     
+    # Опциональные поля директора
+    manual_director = request.form.get('manual_director', '').strip()
+    manual_director_position = request.form.get('manual_director_position', '').strip()
+    
     # Новые поля - услуги с расценками
     pricing_services_json = request.form.get('pricing_services', '').strip()
     packing_percentage = request.form.get('packing_percentage', '').strip()
@@ -126,6 +130,12 @@ def generate():
         
         if not company_data:
             return jsonify({'success': False, 'error': f'Компания с ИНН {inn} не найдена'}), 404
+        
+        # Если введены вручную директор/должность - перезаписываем данные из API
+        if manual_director:
+            company_data['director'] = manual_director
+        if manual_director_position:
+            company_data['director_position'] = manual_director_position
         
         contract_data = {
             'contract_number': contract_number,
