@@ -231,6 +231,11 @@ def fix_caps(text: str) -> str:
     result = []
     in_quotes = False
     
+    # Проверяем, похоже ли это на ФИО (3 слова без кавычек и спецсимволов)
+    is_probably_name = (len(words) == 3 and 
+                       all(w.isalpha() for w in words) and 
+                       not any(q in text for q in ['"', '«', '»', '(', ')']))
+    
     for word in words:
         clean_word = word.strip('",«»()[]')
             
@@ -239,8 +244,8 @@ def fix_caps(text: str) -> str:
         
         if clean_word in keep_upper:
             result.append(word)
-        elif in_quotes:
-            # Для названий в кавычках используем title (каждое слово с заглавной)
+        elif in_quotes or is_probably_name:
+            # Для названий в кавычках и ФИО используем title (каждое слово с заглавной)
             result.append(word.title())
         else:
             # Для обычного текста - только первая буква
@@ -286,6 +291,10 @@ def _determine_legal_info(company_data: dict) -> dict:
     name = company_data.get('name', '').lower()
     director = company_data.get('director', '')
     position = company_data.get('director_position', 'Генеральный директор')
+    
+    # Заменяем "Учредитель" на "Генеральный директор"
+    if position and 'учредител' in position.lower():
+        position = 'Генеральный директор'
     
     if ('ип' in legal_form or 'индивидуальн' in legal_form or 
         'индивидуальн' in full_name or 'индивидуальн' in name):
