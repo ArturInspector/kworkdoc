@@ -217,7 +217,7 @@ def generate_pricing_text(pricing_services: list, contract_data: dict) -> str:
 
 def convert_to_genitive(position: str) -> str:
     """конвертит должность в родительный падеж."""
-    return GENITIVE_MAP.get(position, position + 'а')
+    return GENITIVE_MAP.get(position, position)
 
 
 def shorten_fio(full_name: str) -> str:
