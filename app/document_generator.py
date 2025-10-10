@@ -1,6 +1,7 @@
 """
 Генератор документов - заполнение шаблона DOCX
 """
+import re
 from docxtpl import DocxTemplate, RichText
 from docx.shared import Pt
 from io import BytesIO
@@ -15,6 +16,9 @@ GENITIVE_MAP = {
     'Президент': 'Президента',
     'Председатель': 'Председателя',
     'Учредитель': 'Учредителя',
+    'Коммерческий директор': 'Коммерческого директора',
+    'Финансовый директор': 'Финансового директора',
+    'Технический директор': 'Технического директора',
 }
 
 MONTHS_RUSSIAN = {
@@ -217,7 +221,37 @@ def generate_pricing_text(pricing_services: list, contract_data: dict) -> str:
 
 def convert_to_genitive(position: str) -> str:
     """конвертит должность в родительный падеж."""
-    return GENITIVE_MAP.get(position, position)
+    if not position:
+        return position
+    
+    # Сначала проверяем в словаре
+    if position in GENITIVE_MAP:
+        return GENITIVE_MAP[position]
+    
+    # Обрабатываем паттерны для сложных должностей
+    # Паттерн: "Директор чего-то" → "Директора чего-то"
+    if re.match(r'^Директор\s+', position, re.IGNORECASE):
+        return re.sub(r'^Директор\s+', 'Директора ', position, flags=re.IGNORECASE)
+    
+    # Паттерн: "Прилагательное директор" → "Прилагательного директора"
+    # Например: "Коммерческий директор" → "Коммерческого директора"
+    match = re.match(r'^(\w+ный|(\w+ий)|(\w+ской))\s+директор$', position, re.IGNORECASE)
+    if match:
+        adj = match.group(1)
+        # Заменяем окончание прилагательного
+        if adj.endswith('ный'):
+            return adj[:-2] + 'ного директора'
+        elif adj.endswith('ий'):
+            return adj[:-2] + 'его директора'
+        elif adj.endswith('ской'):
+            return adj[:-2] + 'ского директора'
+    
+    # Паттерн: "Управляющий чем-то" → "Управляющего чем-то"
+    if re.match(r'^Управляющий\s+', position, re.IGNORECASE):
+        return re.sub(r'^Управляющий\s+', 'Управляющего ', position, flags=re.IGNORECASE)
+    
+    # Если не подошло ни одно правило, возвращаем как есть
+    return position
 
 
 def shorten_fio(full_name: str) -> str:
