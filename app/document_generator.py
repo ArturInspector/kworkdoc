@@ -220,6 +220,40 @@ def convert_to_genitive(position: str) -> str:
     return GENITIVE_MAP.get(position, position + 'а')
 
 
+def shorten_fio(full_name: str) -> str:
+    """Сокращает ФИО до формата 'Фамилия И.О.'"""
+    if not full_name:
+        return full_name
+    
+    parts = full_name.strip().split()
+    
+    # Если это ФИО из трех частей
+    if len(parts) == 3:
+        surname = parts[0]
+        first_initial = parts[1][0].upper() + '.' if len(parts[1]) > 0 else ''
+        patronymic_initial = parts[2][0].upper() + '.' if len(parts[2]) > 0 else ''
+        return f"{surname} {first_initial}{patronymic_initial}"
+    
+    # Если формат другой, возвращаем как есть
+    return full_name
+
+
+def fix_ooo_spelling(text: str) -> str:
+    """Исправляет написание расшифровки ООО - 'с' должна быть маленькой."""
+    if not text:
+        return text
+    
+    # Заменяем различные варианты написания "Общество С ограниченной" на правильный
+    text = text.replace('Общество С ограниченной ответственностью', 'Общество с Ограниченной Ответственностью')
+    text = text.replace('Общество С Ограниченной Ответственностью', 'Общество с Ограниченной Ответственностью')
+    text = text.replace('ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ', 'Общество с Ограниченной Ответственностью')
+    text = text.replace('Общество С ограниченной', 'Общество с Ограниченной')
+    text = text.replace('Общество С Ограниченной', 'Общество с Ограниченной')
+    text = text.replace('ОБЩЕСТВО С ОГРАНИЧЕННОЙ', 'Общество с Ограниченной')
+    
+    return text
+
+
 def fix_caps(text: str) -> str:
     """Приводит текст в КАПСЕ к нормальному виду с учетом русских правил."""
     if not text or not text.isupper():
@@ -290,6 +324,7 @@ def _determine_legal_info(company_data: dict) -> dict:
     full_name = company_data.get('full_name', '').lower()
     name = company_data.get('name', '').lower()
     director = fix_caps(company_data.get('director', ''))  # Обрабатываем ФИО через fix_caps
+    director_short = shorten_fio(director)  # Сокращаем ФИО до формата "Фамилия И.О."
     position = company_data.get('director_position', 'Генеральный директор')
     
     # Заменяем "Учредитель" на "Генеральный директор"
@@ -302,7 +337,7 @@ def _determine_legal_info(company_data: dict) -> dict:
             'is_ooo': False,
             'is_ip': True,
             'customer_legal_basis': 'свидетельства о государственной регистрации',
-            'customer_acts_as': director,
+            'customer_acts_as': director_short,
             'customer_position': '',
             'customer_position_genitive': ''
         }
@@ -313,7 +348,7 @@ def _determine_legal_info(company_data: dict) -> dict:
             'is_ooo': True,
             'is_ip': False,
             'customer_legal_basis': 'Устава',
-            'customer_acts_as': director,
+            'customer_acts_as': director_short,
             'customer_position': position,
             'customer_position_genitive': convert_to_genitive(position)
         }
@@ -325,7 +360,7 @@ def _determine_legal_info(company_data: dict) -> dict:
             'is_ooo': False,
             'is_ip': False,
             'customer_legal_basis': 'Устава',
-            'customer_acts_as': director,
+            'customer_acts_as': director_short,
             'customer_position': position,
             'customer_position_genitive': convert_to_genitive(position)
         }
@@ -335,7 +370,7 @@ def _determine_legal_info(company_data: dict) -> dict:
         'is_ooo': False,
         'is_ip': False,
         'customer_legal_basis': 'учредительных документов',
-        'customer_acts_as': director,
+        'customer_acts_as': director_short,
         'customer_position': position,
         'customer_position_genitive': convert_to_genitive(position) if position else ''
     }
@@ -382,7 +417,7 @@ def prepare_context(company_data: dict, contract_data: dict = None, executor_pro
         'customer_kpp': company_data.get('kpp', ''),
         'customer_ogrn': company_data.get('ogrn', ''),
         'customer_name': fix_caps(company_data.get('name', '')),
-        'customer_full_name': fix_caps(company_data.get('full_name', '')),
+        'customer_full_name': fix_ooo_spelling(fix_caps(company_data.get('full_name', ''))),
         'customer_legal_address': fix_caps(company_data.get('legal_address', '')),
         'customer_postal_address': fix_caps(company_data.get('postal_address', '')),
         'customer_director': fix_caps(company_data.get('director', '')),
